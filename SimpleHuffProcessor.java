@@ -26,6 +26,9 @@ public class SimpleHuffProcessor implements IHuffProcessor {
 
     private IHuffViewer myViewer;
     private TreeMap<Integer, Integer> freqMap;
+    private FairPQ pq;
+    private boolean processed = false;
+    private TreeMap<Character, String> huffCodes;
 
     /**
      * Preprocess data so that compression is possible ---
@@ -50,8 +53,10 @@ public class SimpleHuffProcessor implements IHuffProcessor {
 //        throw new IOException("preprocess not implemented");
         //return 0;
         freqMap = new TreeMap<Integer, Integer>();
-        BitInputStream bits = new BitInputStream(in); // wrap the input stream I am given in a bit
-        // input stream
+        pq = new FairPQ();
+        huffCodes = new TreeMap<Character, String>();
+
+        BitInputStream bits = new BitInputStream(in); // wrap input stream given in BitInputStream
         int inbits = bits.readBits(IHuffConstants.BITS_PER_WORD);
         int countBits = 0;
         while (inbits != -1) {
@@ -66,9 +71,15 @@ public class SimpleHuffProcessor implements IHuffProcessor {
             inbits =  bits.readBits(IHuffConstants.BITS_PER_WORD);
         }
         freqMap.put(PSEUDO_EOF, 1); // add the PSEUDO_EOF character to the map
-        //System.out.println("countBits: " + countBits * IHuffConstants.BITS_PER_WORD);
-        printMap();
-
+        //printMap();
+        for (Integer key : freqMap.keySet()) {
+            pq.enqueue(new TreeNode(key, freqMap.get(key)));
+        }
+        //System.out.println("\n" + pq.toString());
+        TreeNode builtTree = buildTree(pq);
+        createHuffmanCodes(builtTree, "");
+        System.out.println(huffCodes.toString());
+        processed = true;
         return countBits * IHuffConstants.BITS_PER_WORD;
     }
 
@@ -81,6 +92,30 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         }
     }
 
+    private TreeNode buildTree(FairPQ pq) {
+        while (pq.size() > 1) {
+            TreeNode left = pq.dequeue();
+            TreeNode right = pq.dequeue();
+            TreeNode parent = new TreeNode(-1, left.getFrequency() + right.getFrequency());
+            parent.setLeft(left);
+            parent.setRight(right);
+            pq.enqueue(parent);
+        }
+        TreeNode node = pq.dequeue();
+        System.out.println("Tree built: " + node.toString());
+        return node; // returns entire tree
+    }
+
+
+    private void createHuffmanCodes(TreeNode node, String code) {
+        if (node.isLeaf()) {
+            //huffCodes.put(node.getValue(), code);
+            huffCodes.put((char) node.getValue(), code);
+        } else {
+            createHuffmanCodes(node.getLeft(), code + "0");
+            createHuffmanCodes(node.getRight(), code + "1");
+        }
+    }
     /**
 	 * Compresses input to output, where the same InputStream has
      * previously been pre-processed via <code>preprocessCompress</code>
@@ -96,8 +131,15 @@ public class SimpleHuffProcessor implements IHuffProcessor {
      * writing to the output file.
      */
     public int compress(InputStream in, OutputStream out, boolean force) throws IOException {
-        throw new IOException("compress is not implemented");
-        //return 0;
+        //throw new IOException("compress is not implemented");
+        if (!processed) {
+            throw new IOException("preprocessCompress must be called before compress");
+        }
+        BitInputStream inBits = new BitInputStream(in);
+        BitOutputStream outBits = new BitOutputStream(out);
+        return 0;
+
+
     }
 
     /**
