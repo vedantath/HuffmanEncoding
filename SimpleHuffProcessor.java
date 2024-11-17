@@ -1,28 +1,31 @@
 /*  Student information for assignment:
  *
- *  On <MY|OUR> honor, <NAME1> and <NAME2), this programming assignment is <MY|OUR> own work
- *  and <I|WE> have not provided this code to any other student.
+ *  On OUR honor, Vedant Athale and Srishruthik Alle, this programming assignment is OUR own
+ * work
+ *  and WE have not provided this code to any other student.
  *
  *  Number of slip days used:
  *
  *  Student 1 (Student whose Canvas account is being used)
- *  UTEID:
- *  email address:
+ *  UTEID: vba252
+ *  email address: vedant.athale@gmail.com
  *  Grader name:
  *
  *  Student 2
- *  UTEID:
- *  email address:
+ *  UTEID: SA59576
+ *  email address: shruthik.alle@gmail.com
  *
  */
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.TreeMap;
 
 public class SimpleHuffProcessor implements IHuffProcessor {
 
     private IHuffViewer myViewer;
+    private TreeMap<Integer, Integer> freqMap;
 
     /**
      * Preprocess data so that compression is possible ---
@@ -42,10 +45,40 @@ public class SimpleHuffProcessor implements IHuffProcessor {
      * @throws IOException if an error occurs while reading from the input file.
      */
     public int preprocessCompress(InputStream in, int headerFormat) throws IOException {
-        showString("Not working yet");
-        myViewer.update("Still not working");
-        throw new IOException("preprocess not implemented");
+//        showString("Not working yet");
+//        myViewer.update("Still not working");
+//        throw new IOException("preprocess not implemented");
         //return 0;
+        freqMap = new TreeMap<Integer, Integer>();
+        BitInputStream bits = new BitInputStream(in); // wrap the input stream I am given in a bit
+        // input stream
+        int inbits = bits.readBits(IHuffConstants.BITS_PER_WORD);
+        int countBits = 0;
+        while (inbits != -1) {
+            System.out.println(inbits); // prints the value we read in as an int regardless of
+            // what it was suppose to represent
+            if (freqMap.containsKey(inbits)) {
+                freqMap.put(inbits, freqMap.get(inbits) + 1);
+            } else {
+                freqMap.put(inbits, 1);
+            }
+            countBits++;
+            inbits =  bits.readBits(IHuffConstants.BITS_PER_WORD);
+        }
+        freqMap.put(PSEUDO_EOF, 1); // add the PSEUDO_EOF character to the map
+        //System.out.println("countBits: " + countBits * IHuffConstants.BITS_PER_WORD);
+        printMap();
+
+        return countBits * IHuffConstants.BITS_PER_WORD;
+    }
+
+    private void printMap() {
+        System.out.println("Counting characters in selected file.\n\nFrequencies of values in " +
+                "file.");
+        for (Integer key : freqMap.keySet()) {
+            char ch = (char) key.intValue();
+            System.out.println(key + " "+ Integer.toBinaryString(key) + " " + ch + " " + freqMap.get(key));
+        }
     }
 
     /**
