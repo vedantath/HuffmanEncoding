@@ -78,7 +78,7 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         //System.out.println("\n" + pq.toString());
         TreeNode builtTree = buildTree(pq);
         createHuffmanCodes(builtTree, "");
-        System.out.println(huffCodes.toString());
+        //System.out.println(huffCodes.toString());
         processed = true;
         return countBits * IHuffConstants.BITS_PER_WORD;
     }
@@ -133,13 +133,31 @@ public class SimpleHuffProcessor implements IHuffProcessor {
     public int compress(InputStream in, OutputStream out, boolean force) throws IOException {
         //throw new IOException("compress is not implemented");
         if (!processed) {
-            throw new IOException("preprocessCompress must be called before compress");
+            preprocessCompress(in, IHuffProcessor.STORE_COUNTS);
         }
         BitInputStream inBits = new BitInputStream(in);
         BitOutputStream outBits = new BitOutputStream(out);
+        // write magic number
+        outBits.writeBits(IHuffConstants.BITS_PER_INT, IHuffConstants.MAGIC_NUMBER);
+        checkMagicNum(inBits);
+        outBits.writeBits(IHuffConstants.BITS_PER_INT, IHuffConstants.STORE_COUNTS);
+        for (int k = 0; k < IHuffConstants.ALPH_SIZE; k++) {
+            outBits.writeBits(IHuffConstants.BITS_PER_INT, freqMap.get(k));
+        }
+
         return 0;
 
 
+    }
+
+    private int checkMagicNum(BitInputStream inBits) throws IOException {
+        int magicNum = inBits.readBits(IHuffConstants.BITS_PER_INT);
+        if (magicNum != IHuffConstants.MAGIC_NUMBER) {
+            myViewer.showError("Error reading compressed file. \n" +
+                    "File does not start with the huff magic number.");
+            return -1;
+        }
+        return magicNum;
     }
 
     /**
