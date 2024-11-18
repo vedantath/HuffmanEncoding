@@ -77,6 +77,10 @@ public class FairPQ {
         return sb.toString();
     }
 
+
+    /**
+     * Nested class PQNode to represent a node in the priority queue.
+     */
     private class PQNode {
         //private instance variables
         private TreeNode node;
