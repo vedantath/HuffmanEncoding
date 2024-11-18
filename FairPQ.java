@@ -53,15 +53,19 @@ public class FairPQ {
         return node;
     }
 
+    // Return the size of the priority queue
     public int size() {
         return size;
     }
 
+    // Return the first item in the priority queue
     public TreeNode getFirst() {
         return head.node;
     }
 
     @Override
+    // Return a string representation of the priority queue. (Character, Frequency)
+    // Ex Apple --> (A, 1) (l, 1) (e, 1) (p, 2)
     public String toString() {
         StringBuilder sb = new StringBuilder();
         PQNode current = head;
