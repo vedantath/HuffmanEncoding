@@ -19,8 +19,8 @@ public class Huff {
         }
         // To use a Graphical User Interface to perform Huffman operations.
         // Comment out the following line and uncomment the line after to use a TextHuffViewer.
-//        IHuffViewer sv = new GUIHuffViewer("Huffman Compression");
-        IHuffViewer sv = new TextHuffViewer();
+        IHuffViewer sv = new GUIHuffViewer("Huffman Compression");
+        //IHuffViewer sv = new TextHuffViewer();
         IHuffProcessor proc = new SimpleHuffProcessor();
         sv.setModel(proc);    
         if (sv instanceof TextHuffViewer) {

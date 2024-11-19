@@ -12,20 +12,19 @@ public class FairPQ {
     /**
      * Adds a node to the priority queue, ordered by frequency. If there is a tie, the new node
      * will be places after the node(s) with the same frequency.
+     *
      * @param node The node to be inserted to the priority queue.
      */
     public void enqueue(TreeNode node) {
         PQNode newNode = new PQNode(node);
         if (head == null) {
             head = newNode;
-        }
-        else {
+        } else {
             // edge for the case new node less than head
             if (head.node.getFrequency() > node.getFrequency()) {
                 newNode.next = head;
                 head = newNode;
-            }
-            else {
+            } else {
                 PQNode current = head;
                 while (current.next != null && current.next.node.getFrequency() <=
                         node.getFrequency()) {
@@ -36,11 +35,12 @@ public class FairPQ {
             }
         }
         size++;
-        System.out.println(this.toString());
+        System.out.println(this);
     }
 
     /**
      * Removes the node with the lowest frequency from the priority queue.
+     *
      * @return the node removed, or null if the queue is empty.
      */
     public TreeNode dequeue() {
@@ -60,7 +60,9 @@ public class FairPQ {
 
     // Return the first item in the priority queue
     public TreeNode getFirst() {
-        return head.node;
+        if (head != null)
+            return head.node;
+        return null;
     }
 
     @Override
@@ -71,7 +73,7 @@ public class FairPQ {
         PQNode current = head;
         while (current != null) {
             char ch = (char) current.node.getValue();
-            sb.append("("+ch+" , "+ current.node.getFrequency()+")" + " ");
+            sb.append("(" + ch + " , " + current.node.getFrequency() + ")" + " ");
             current = current.next;
         }
         return sb.toString();
@@ -83,7 +85,7 @@ public class FairPQ {
      */
     private class PQNode {
         //private instance variables
-        private TreeNode node;
+        private final TreeNode node;
         private PQNode next;
 
         //constructor
