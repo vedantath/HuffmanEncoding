@@ -17,8 +17,6 @@
  *
  */
 
-import com.sun.source.tree.Tree;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -60,16 +58,14 @@ public class SimpleHuffProcessor implements IHuffProcessor {
      */
     public int preprocessCompress(InputStream in, int headerFormat) throws IOException {
         header = headerFormat;
-
         BitInputStream bits = new BitInputStream(in); // wrap input stream given in BitInputStream
         int inbits = bits.readBits(IHuffConstants.BITS_PER_WORD);
         int countBits = 0;
         while (inbits != -1) {
-            //System.out.println(inbits); // prints the value we read in as an int regardless of
-            // what it was suppose to represent
             if (freqMap.containsKey(inbits)) {
                 freqMap.put(inbits, freqMap.get(inbits) + 1);
-            } else {
+            }
+            else {
                 freqMap.put(inbits, 1);
             }
             countBits++;
@@ -88,15 +84,6 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         return (countBits * IHuffConstants.BITS_PER_WORD) - compressedBitsTotal;
     }
 
-    private void printMap() {
-        System.out.println("Counting characters in selected file.\n\nFrequencies of values in " +
-                "file.");
-        for (Integer key : freqMap.keySet()) {
-            char ch = (char) key.intValue();
-            System.out.println(key + " " + Integer.toBinaryString(key) + " " + ch + " " + freqMap.get(key));
-        }
-    }
-
     private TreeNode buildTree(FairPQ pq) {
         while (pq.size() > 1) {
             TreeNode left = pq.dequeue();
@@ -107,14 +94,12 @@ public class SimpleHuffProcessor implements IHuffProcessor {
             pq.enqueue(parent);
         }
         TreeNode node = pq.getFirst();
-        //System.out.println("Tree built: " + node.toString());
         return node; // returns entire tree
     }
 
 
     private void createHuffmanCodes(TreeNode node, String code) {
         if (node.isLeaf()) {
-            //huffCodes.put(node.getValue(), code);
             huffCodes.put((char) node.getValue(), code);
         } else {
             createHuffmanCodes(node.getLeft(), code + "0");
@@ -138,16 +123,15 @@ public class SimpleHuffProcessor implements IHuffProcessor {
      *                     writing to the output file.
      */
     public int compress(InputStream in, OutputStream out, boolean force) throws IOException {
-        //throw new IOException("compress is not implemented");
         if (!processed) {
             preprocessCompress(in, IHuffProcessor.STORE_COUNTS);
         }
         BitInputStream inBits = new BitInputStream(in);
         BitOutputStream outBits = new BitOutputStream(out);
+        int bitsWritten = 0;
         // write magic number
         outBits.writeBits(IHuffConstants.BITS_PER_INT, IHuffConstants.MAGIC_NUMBER);
-        //checkMagicNum(new BitInputStream(in));
-
+        bitsWritten += IHuffConstants.BITS_PER_INT;
         // Standard count format
         if (header == IHuffConstants.STORE_COUNTS) {
             outBits.writeBits(IHuffConstants.BITS_PER_INT, IHuffConstants.STORE_COUNTS);
@@ -157,15 +141,16 @@ public class SimpleHuffProcessor implements IHuffProcessor {
                 } else {
                     outBits.writeBits(IHuffConstants.BITS_PER_INT, 0);
                 }
+                bitsWritten += IHuffConstants.BITS_PER_INT;
             }
         } else if (header == IHuffConstants.STORE_TREE) { // Standard tree format
             outBits.writeBits(IHuffConstants.BITS_PER_INT, IHuffConstants.STORE_TREE);
             int representSize = (freqMap.size() * 9) + treeSize(pq.getFirst());
             outBits.writeBits(IHuffConstants.BITS_PER_INT, representSize);
-            preorder(pq.getFirst(), outBits);
+            bitsWritten += IHuffConstants.BITS_PER_INT * 2;
+            bitsWritten += preorder(pq.getFirst(), outBits, 0);
         }
 
-        int bitsWritten = 0;
         int inbit = inBits.readBits(IHuffConstants.BITS_PER_WORD);
         while (inbit != -1) {
             String code = huffCodes.get((char) inbit);
@@ -188,8 +173,8 @@ public class SimpleHuffProcessor implements IHuffProcessor {
             }
             bitsWritten++;
         }
+        outBits.flush();
         outBits.close();
-
         return bitsWritten;
     }
 
@@ -202,29 +187,30 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         return left + right + 1;
     }
 
-    private void preorder(TreeNode node, BitOutputStream out) {
+    private int preorder(TreeNode node, BitOutputStream out, int bitsWritten) {
         if (node != null) {
             if (!node.isLeaf()) {
                 out.writeBits(1, 0);
+                bitsWritten++;
             } else {
                 out.writeBits(1, 1);
                 out.writeBits(9, node.getValue());
+                bitsWritten += 10;
             }
-            preorder(node.getLeft(), out);
-            preorder(node.getRight(), out);
+            preorder(node.getLeft(), out, bitsWritten);
+            preorder(node.getRight(), out, bitsWritten);
         }
+        return bitsWritten;
     }
 
-    private int checkMagicNum(BitInputStream inBits) throws IOException {
+    private boolean checkMagicNum(BitInputStream inBits) throws IOException {
         int magicNum = inBits.readBits(IHuffConstants.BITS_PER_INT);
-        System.out.println("magicNum: " + magicNum);
-        System.out.println("IHuffConstants.MAGIC_NUMBER: " + IHuffConstants.MAGIC_NUMBER);
         if (magicNum != IHuffConstants.MAGIC_NUMBER) {
             myViewer.showError("Error reading compressed file. \n" +
                     "File does not start with the huff magic number.");
-            return -1;
+            return false;
         }
-        return magicNum;
+        return true;
     }
 
     /**
@@ -238,8 +224,79 @@ public class SimpleHuffProcessor implements IHuffProcessor {
      *                     writing to the output file.
      */
     public int uncompress(InputStream in, OutputStream out) throws IOException {
-        throw new IOException("uncompress not implemented");
-        //return 0;
+        // read & check magic number
+        BitInputStream inBits = new BitInputStream(in);
+        BitOutputStream outBits = new BitOutputStream(out);
+        if (!checkMagicNum(inBits)) {
+            return 0;
+        }
+        int bitsWritten = 0;
+        FairPQ huffPQ = new FairPQ();
+        int header = inBits.readBits(IHuffConstants.BITS_PER_INT);
+        TreeNode reconstructedTree;
+        if (header == IHuffConstants.STORE_COUNTS) {
+            for(int k = 0; k < IHuffConstants.ALPH_SIZE; k++) {
+                int frequencyInOriginalFile = inBits.readBits(BITS_PER_INT);
+                if (frequencyInOriginalFile > 0)
+                    huffPQ.enqueue(new TreeNode(k, frequencyInOriginalFile));
+            }
+            huffPQ.enqueue(new TreeNode(IHuffConstants.PSEUDO_EOF, 1));
+            reconstructedTree = buildTree(huffPQ);
+        }
+        else {
+            int treeSize = inBits.readBits(IHuffConstants.BITS_PER_INT);
+            reconstructedTree = readTreeFormatHelper(inBits, new TreeNode(-1, 0));
+        }
+        TreeNode currentNode = reconstructedTree;
+
+        boolean done = false;
+        while (!done) {
+            int bit = inBits.readBits(1);
+            if (bit == -1) {
+                myViewer.showError("Error reading compressed file. Unexpected end of file.");
+            }
+            else {
+                if (bit == 0) {
+                    currentNode = currentNode.getLeft();
+                }
+                if (bit == 1) {
+                    currentNode = currentNode.getRight();
+                }
+                if (currentNode.isLeaf()) {
+                    if (currentNode.getValue() == IHuffConstants.PSEUDO_EOF) {
+                        done = true;
+                    }
+                    else {
+                        outBits.writeBits(IHuffConstants.BITS_PER_WORD, currentNode.getValue());
+                        bitsWritten += IHuffConstants.BITS_PER_WORD;
+                        currentNode = reconstructedTree;
+                    }
+                }
+            }
+        }
+        outBits.flush();
+        outBits.close();
+
+        return bitsWritten;
+    }
+
+    private TreeNode readTreeFormatHelper(BitInputStream in, TreeNode node) throws IOException {
+        int bit = in.readBits(1);
+        if (bit == 0) {
+            node.setLeft(readTreeFormatHelper(in, new TreeNode(-1, 0)));
+            node.setRight(readTreeFormatHelper(in, new TreeNode(-1, 0)));
+            return node;
+        }
+        else if (bit == 1) {
+          int newBit = in.readBits(9);
+          node = new TreeNode(newBit, 0);
+          return node;
+        }
+        else {
+            myViewer.showError("Error reading compressed file. \n" +
+                    "Unexpected end of file.");
+        }
+        return null;
     }
 
     public void setViewer(IHuffViewer viewer) {
