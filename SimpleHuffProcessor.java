@@ -30,6 +30,7 @@ public class SimpleHuffProcessor implements IHuffProcessor {
     private boolean processed = false;
     private final TreeMap<Character, String> huffCodes;
     private int header;
+    private int diffBits;
 
     //Override default constructor
     public SimpleHuffProcessor() {
@@ -82,7 +83,8 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         in.reset();
         int compressedBitsTotal = compress(in, new BitOutputStream(System.out)
                 , false);
-        return( countBits * IHuffConstants.BITS_PER_WORD)- compressedBitsTotal;
+        diffBits = ( countBits * IHuffConstants.BITS_PER_WORD)- compressedBitsTotal;
+        return diffBits;
     }
 
     private TreeNode buildTree(FairPQ pq) {
@@ -127,12 +129,19 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         if (!processed) {
             preprocessCompress(in, IHuffProcessor.STORE_COUNTS);
         }
+        if (!force && diffBits < 0) {
+            myViewer.showError("Compressed file is larger than original file. \n" +
+                    "Use force compression to compress anyway.");
+            return -1;
+        }
+
         BitInputStream inBits = new BitInputStream(in);
         BitOutputStream outBits = new BitOutputStream(out);
         int bitsWritten = 0;
         // write magic number
         outBits.writeBits(IHuffConstants.BITS_PER_INT, IHuffConstants.MAGIC_NUMBER);
         bitsWritten += IHuffConstants.BITS_PER_INT;
+
         // Standard count format
         if (header == IHuffConstants.STORE_COUNTS) {
             outBits.writeBits(IHuffConstants.BITS_PER_INT, IHuffConstants.STORE_COUNTS);
@@ -170,12 +179,12 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         bitsWritten += eofCode.length();
 
         System.out.println("\nbits written compress: " + bitsWritten);
-        if (bitsWritten > (freqMap.size() * IHuffConstants.BITS_PER_WORD) && !force) {
-            outBits = new BitOutputStream(out);
-            myViewer.showError("Compressed file is larger than original file. \n" +
-                    "Use force compression to compress anyway.");
-            return -1;
-        }
+//        if (bitsWritten > (freqMap.size() * IHuffConstants.BITS_PER_WORD) && !force) {
+//            outBits = new BitOutputStream(out);
+//            myViewer.showError("Compressed file is larger than original file. \n" +
+//                    "Use force compression to compress anyway.");
+//            return -1;
+//        }
         outBits.flush();
         outBits.close();
         return bitsWritten;
