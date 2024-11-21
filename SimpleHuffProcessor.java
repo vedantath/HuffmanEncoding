@@ -25,18 +25,19 @@ import java.util.TreeMap;
 public class SimpleHuffProcessor implements IHuffProcessor {
 
     private IHuffViewer myViewer;
-    private final TreeMap<Integer, Integer> freqMap;
-    private final FairPQ pq;
+    private TreeMap<Integer, Integer> freqMap;
+    private FairPQ pq;
     private boolean processed = false;
-    private final TreeMap<Character, String> huffCodes;
+    private TreeMap<Character, String> huffCodes;
     private int header;
     private int diffBits;
 
-    //Override default constructor
-    public SimpleHuffProcessor() {
+    public void resetHuff() {
         freqMap = new TreeMap<Integer, Integer>();
         pq = new FairPQ();
         huffCodes = new TreeMap<Character, String>();
+        processed = false;
+        diffBits = 0;
     }
 
     /**
@@ -59,6 +60,7 @@ public class SimpleHuffProcessor implements IHuffProcessor {
      */
     public int preprocessCompress(InputStream in, int headerFormat) throws IOException {
         header = headerFormat;
+        resetHuff();
         BitInputStream bits = new BitInputStream(in); // wrap input stream given in BitInputStream
         int inbits = bits.readBits(IHuffConstants.BITS_PER_WORD);
         int countBits = 0;
@@ -134,16 +136,15 @@ public class SimpleHuffProcessor implements IHuffProcessor {
                     "Use force compression to compress anyway.");
             return -1;
         }
-
         BitInputStream inBits = new BitInputStream(in);
         BitOutputStream outBits = new BitOutputStream(out);
         int bitsWritten = 0;
+
         // write magic number
         outBits.writeBits(IHuffConstants.BITS_PER_INT, IHuffConstants.MAGIC_NUMBER);
         bitsWritten += IHuffConstants.BITS_PER_INT;
 
-        // Standard count format
-        if (header == IHuffConstants.STORE_COUNTS) {
+        if (header == IHuffConstants.STORE_COUNTS) { // Standard count format
             outBits.writeBits(IHuffConstants.BITS_PER_INT, IHuffConstants.STORE_COUNTS);
             bitsWritten += IHuffConstants.BITS_PER_INT;
             for (int k = 0; k < IHuffConstants.ALPH_SIZE; k++) {
@@ -162,7 +163,7 @@ public class SimpleHuffProcessor implements IHuffProcessor {
             bitsWritten += IHuffConstants.BITS_PER_INT * 2;
             bitsWritten += preorder(pq.getFirst(), outBits, 0);
         }
-
+        // write the compressed data
         int inbit = inBits.readBits(IHuffConstants.BITS_PER_WORD);
         while (inbit != -1) {
             String code = huffCodes.get((char) inbit);
@@ -172,19 +173,13 @@ public class SimpleHuffProcessor implements IHuffProcessor {
             bitsWritten += code.length();
             inbit = inBits.readBits(IHuffConstants.BITS_PER_WORD);
         }
-        String eofCode = huffCodes.get((char) PSEUDO_EOF);
+        String eofCode = huffCodes.get((char) PSEUDO_EOF); // write the EOF code
         for (int i = 0; i < eofCode.length(); i++) {
             outBits.writeBits(1, eofCode.charAt(i) == '0' ? 0 : 1);
         }
         bitsWritten += eofCode.length();
 
         System.out.println("\nbits written compress: " + bitsWritten);
-//        if (bitsWritten > (freqMap.size() * IHuffConstants.BITS_PER_WORD) && !force) {
-//            outBits = new BitOutputStream(out);
-//            myViewer.showError("Compressed file is larger than original file. \n" +
-//                    "Use force compression to compress anyway.");
-//            return -1;
-//        }
         outBits.flush();
         outBits.close();
         return bitsWritten;
