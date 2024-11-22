@@ -16,9 +16,6 @@ is since the file is already compressed and there is not much repitition to take
 compression. In some cases, the file size may increase slightly due header information added by the
 Huffman algorithm.
 
-```python
-import os
-import time
 
 
 compressing to: C:\Vedant\CS-314\Huffman\BooksAndHTML\A7_Recursion.html.hf
