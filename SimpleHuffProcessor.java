@@ -73,7 +73,6 @@ public class SimpleHuffProcessor implements IHuffProcessor {
             countBits ++;
             inbits = bits.readBits(IHuffConstants.BITS_PER_WORD);
         }
-        System.out.println("countBits preprocess: " + countBits);
         freqMap.put(PSEUDO_EOF, 1); // add the PSEUDO_EOF character to the map
         for (Integer key : freqMap.keySet()) {
             pq.enqueue(new TreeNode(key, freqMap.get(key)));
@@ -83,10 +82,29 @@ public class SimpleHuffProcessor implements IHuffProcessor {
 
         processed = true;
         in.reset();
-        int compressedBitsTotal = compress(in, new BitOutputStream(System.out)
-                , false);
+        int compressedBitsTotal = computeCompressedBits(headerFormat);
         diffBits = ( countBits * IHuffConstants.BITS_PER_WORD)- compressedBitsTotal;
         return diffBits;
+    }
+
+    private int computeCompressedBits(int header) {
+        int count = 0;
+        count += IHuffConstants.BITS_PER_INT; // magic number
+
+        if (header == IHuffConstants.STORE_COUNTS) { // Standard count format
+            count += IHuffConstants.BITS_PER_INT; //SCF Header
+            count += IHuffConstants.ALPH_SIZE * IHuffConstants.BITS_PER_INT; // freqMap counts
+        }
+        else if (header == IHuffConstants.STORE_TREE) { // Standard tree format
+            count += IHuffConstants.BITS_PER_INT * 2;
+            int leafs = huffCodes.size();
+            count += leafs * 10;
+            count += treeSize(pq.getFirst()) - leafs;
+        }
+        for (char ch : huffCodes.keySet()) {
+            count += huffCodes.get(ch).length() * freqMap.get((int) ch); // compressed data
+        }
+        return count;
     }
 
     private TreeNode buildTree(FairPQ pq) {
@@ -179,7 +197,6 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         }
         bitsWritten += eofCode.length();
 
-        System.out.println("\nbits written compress: " + bitsWritten);
         outBits.flush();
         outBits.close();
         return bitsWritten;

@@ -1,3 +1,22 @@
+/*  Student information for assignment:
+ *
+ *  On OUR honor, Vedant Athale and Srishruthik Alle, this programming assignment is OUR own
+ * work
+ *  and WE have not provided this code to any other student.
+ *
+ *  Number of slip days used:
+ *
+ *  Student 1 (Student whose Canvas account is being used)
+ *  UTEID: vba252
+ *  email address: vedant.athale@gmail.com
+ *  Grader name:
+ *
+ *  Student 2
+ *  UTEID: SA59576
+ *  email address: shruthik.alle@gmail.com
+ *
+ */
+
 public class FairPQ {
     //private instance variables
     private PQNode head;
@@ -35,7 +54,6 @@ public class FairPQ {
             }
         }
         size++;
-        System.out.println(this);
     }
 
     /**
