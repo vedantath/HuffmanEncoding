@@ -4,7 +4,7 @@
  * work
  *  and WE have not provided this code to any other student.
  *
- *  Number of slip days used:
+ *  Number of slip days used: 1
  *
  *  Student 1 (Student whose Canvas account is being used)
  *  UTEID: vba252
@@ -17,6 +17,7 @@
  *
  */
 
+// An implementation of a fair priority queue using a linked list structure.
 public class FairPQ {
     //private instance variables
     private PQNode head;
@@ -39,7 +40,7 @@ public class FairPQ {
         if (head == null) {
             head = newNode;
         } else {
-            // edge for the case new node less than head
+            // edge case: new node less than head
             if (head.node.getFrequency() > node.getFrequency()) {
                 newNode.next = head;
                 head = newNode;
