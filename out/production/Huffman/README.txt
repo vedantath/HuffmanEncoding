@@ -11,14 +11,11 @@ repitition, making Huffman compression less effective.
 
 
 What happens when you try and compress a huffman code file?
-When you try to compress a huffman code file, there is little to no change in the file size. This
-is since the file is already compressed and there is not much repitition to take advantage of for
-compression. In some cases, the file size may increase slightly due header information added by the
-Huffman algorithm.
+When you try to compress a huffman code file,
 
-```python
-import os
-import time
+
+
+
 
 
 compressing to: C:\Vedant\CS-314\Huffman\BooksAndHTML\A7_Recursion.html.hf
